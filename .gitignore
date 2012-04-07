@@ -1,0 +1,12 @@
+
+/.idea
+/arquillian-guice-inject/transaction.log
+/arquillian-guice-inject/arquillian-guice-inject.iml
+/arquillian-guice-jsr330/transaction.log
+/arquillian-guice-jsr330/arquillian-guice-jsr330.iml
+/arquillian-guice-spring/transaction.log
+/arquillian-guice-spring/arquillian-guice-spring.iml
+/arquillian-guice-testng/transaction.log
+/arquillian-guice-testng/arquillian-guice-testng.iml
+/arquillian-guice-showcase-parent.iml
+/transaction.log
