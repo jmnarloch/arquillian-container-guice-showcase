@@ -24,6 +24,7 @@ import org.jboss.arquillian.guice.annotations.GuiceJpaPersistConfiguration;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.showcase.guice.jpa.Appointment;
 import org.jboss.arquillian.showcase.guice.jpa.AppointmentModule;
+import org.jboss.arquillian.showcase.guice.jpa.DependencyTestHelper;
 import org.jboss.arquillian.showcase.guice.jpa.GuiceTestDataSourceEJB;
 import org.jboss.arquillian.showcase.guice.jpa.repository.AppointmentRepository;
 import org.jboss.arquillian.showcase.guice.jpa.repository.impl.AppointmentRepositoryImpl;
@@ -32,9 +33,11 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.DependencyResolvers;
 import org.jboss.shrinkwrap.resolver.api.maven.MavenDependencyResolver;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import javax.persistence.EntityManager;
 import java.io.File;
 import java.util.Date;
 import java.util.List;
@@ -67,7 +70,7 @@ public class AppointmentServiceImplTestCase {
                         GuiceTestDataSourceEJB.class)
                 .addAsResource(AppointmentServiceImplTestCase.class.getClassLoader().getResource("persistence.xml"),
                         "META-INF/persistence.xml")
-                .addAsLibraries(guiceDependencies());
+                .addAsLibraries(DependencyTestHelper.guiceDependencies());
     }
 
     /**
@@ -78,7 +81,47 @@ public class AppointmentServiceImplTestCase {
     private AppointmentService appointmentService;
 
     /**
-     * <p>Tests {@link AppointmentService#getAll()} method.</p>
+     * <p>Injected {@link EntityManager}.</p>
+     */
+    @Inject
+    private EntityManager entityManager;
+
+    /**
+     * <p>Tears down test environment.</p>
+     */
+    @After
+    public void tearDown() {
+
+        // deletes all appointments
+        try {
+            entityManager.getTransaction().begin();
+            entityManager.createQuery("delete from Appointment").executeUpdate();
+        } finally {
+            entityManager.getTransaction().commit();
+        }
+    }
+
+    /**
+     * <p>Tests {@link AppointmentServiceImpl#add(Appointment)} method.</p>
+     */
+    public void testAdd() {
+        List<Appointment> result;
+        Appointment appointment1 = createAppointment("Important", "Work", new Date());
+        Appointment appointment2 = createAppointment("Important", "Day of", new Date());
+
+        appointmentService.add(appointment1);
+
+        result =  entityManager.createQuery("select app from Appointment app").getResultList();
+        assertEquals("The Appointment entity hasn't been persisted.", 1, result.size());
+
+        appointmentService.add(appointment2);
+
+        result =  entityManager.createQuery("select app from Appointment app").getResultList();
+        assertEquals("The Appointment entity hasn't been persisted.", 1, result.size());
+    }
+    
+    /**
+     * <p>Tests {@link AppointmentServiceImpl#getAll()} method.</p>
      */
     @Test
     public void testGetAll() {
@@ -110,27 +153,5 @@ public class AppointmentServiceImplTestCase {
         appointment.setLocation(location);
         appointment.setDate(date);
         return appointment;
-    }
-
-    /**
-     * @return
-     */
-    private static File[] guiceDependencies() {
-        return resolveArtifact("com.google.inject.extensions:guice-persist:3.0");
-    }
-
-    /**
-     * Resolves the given artifact by it's name with help of maven build system.
-     *
-     * @param artifact the fully qualified artifact name
-     *
-     * @return the resolved files
-     */
-    private static File[] resolveArtifact(String artifact) {
-        MavenDependencyResolver mvnResolver = DependencyResolvers.use(MavenDependencyResolver.class);
-
-        mvnResolver.loadMetadataFromPom("pom.xml");
-
-        return mvnResolver.artifacts(artifact).resolveAsFiles();
     }
 }
